@@ -19,6 +19,7 @@ import CelebritySection from "@/components/sections/CelebritySection";
 import NewsSection from "@/components/sections/NewsSection";
 import BlogsSection from "@/components/sections/BlogsSection";
 import ReviewsSection from "@/components/sections/ReviewsSection";
+import ArtistsSection from "@/components/sections/ArtistsSection";
 import SelectionsSection from "@/components/sections/SelectionsSection";
 import AdminsSection from "@/components/sections/AdminsSection";
 import ProfileSection from "@/components/sections/ProfileSection";
@@ -40,6 +41,7 @@ function AdminDashboardContent() {
     setNews,
     setBlogs,
     setReviews,
+    setArtists,
     setUsers,
   } = useAdmin();
 
@@ -178,6 +180,18 @@ function AdminDashboardContent() {
           setReviews((prev) => [res.data, ...prev]);
           addToast("Patron review published.");
         }
+      } else if (modalSection === "artists") {
+        if (existingId) {
+          const res = await api.updateArtist(existingId, formData);
+          setArtists((prev) =>
+            prev.map((a) => ((a._id || a.id) === existingId ? res.data : a))
+          );
+          addToast("Master artist profile updated.");
+        } else {
+          const res = await api.addArtist(formData);
+          setArtists((prev) => [res.data, ...prev]);
+          addToast("New master artist created with Cloudinary assets.");
+        }
       } else if (modalSection === "admins") {
         const res = await api.createAdmin({
           name: rawData.name,
@@ -262,6 +276,13 @@ function AdminDashboardContent() {
           <ReviewsSection
             onAdd={() => handleOpenAdd("reviews")}
             onEdit={(record) => handleOpenEdit(record, "reviews")}
+          />
+        );
+      case "artists":
+        return (
+          <ArtistsSection
+            onAdd={() => handleOpenAdd("artists")}
+            onEdit={(record) => handleOpenEdit(record, "artists")}
           />
         );
       case "selections":

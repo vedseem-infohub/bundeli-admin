@@ -29,6 +29,7 @@ export default function AdminSidebar() {
     banners,
     categories,
     artworks,
+    artists,
     celebrities,
     news,
     blogs,
@@ -65,6 +66,12 @@ export default function AdminSidebar() {
       label: "Masterpiece Artworks",
       icon: Palette,
       badge: artworks.length || 0,
+    },
+    {
+      id: "artists",
+      label: "Master Artists & Guilds",
+      icon: UserCheck,
+      badge: (artists && artists.length) || 0,
     },
     {
       id: "new-arrivals",

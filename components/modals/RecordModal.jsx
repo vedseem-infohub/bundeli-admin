@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Upload, Sparkles, Check, Image as ImageIcon } from "lucide-react";
+import { X, Upload, Sparkles, Check, Image as ImageIcon, Video, Film, Play, Trash2 } from "lucide-react";
 
 export default function RecordModal({
   isOpen,
@@ -13,6 +13,10 @@ export default function RecordModal({
   const [formData, setFormData] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,11 +28,25 @@ export default function RecordModal({
       setError("");
       setImageFiles([]);
       setImagePreviews([]);
+      setCoverImageFile(null);
+      setCoverImagePreview("");
+      setVideoFile(null);
+      setVideoPreview("");
 
       if (initialData) {
-        setFormData({ ...initialData });
+        const cloned = { ...initialData };
+        if (section === "artists") {
+          if (Array.isArray(cloned.mediums)) cloned.mediums = cloned.mediums.join(", ");
+          if (Array.isArray(cloned.awards)) cloned.awards = cloned.awards.join(", ");
+        }
+        setFormData(cloned);
         if (initialData.image) setImagePreviews([initialData.image]);
-        if (initialData.coverImage) setImagePreviews([initialData.coverImage]);
+        if (initialData.avatar) setImagePreviews([initialData.avatar]);
+        if (initialData.coverImage) {
+          setCoverImagePreview(initialData.coverImage);
+          if (section !== "artists") setImagePreviews([initialData.coverImage]);
+        }
+        if (initialData.video) setVideoPreview(initialData.video);
         if (initialData.images && Array.isArray(initialData.images)) {
           setImagePreviews(
             initialData.images.map((img) => (typeof img === "string" ? img : img.url))
@@ -58,6 +76,17 @@ export default function RecordModal({
           defaults.verified = true;
         } else if (section === "admins") {
           defaults.role = "admin";
+        } else if (section === "artists") {
+          defaults.region = "Bundelkhand";
+          defaults.location = "Bundelkhand, India";
+          defaults.role = "Master Artisan";
+          defaults.style = "Bundelkhand Royal Fresco & Miniature";
+          defaults.experienceYears = 20;
+          defaults.artworkCount = 6;
+          defaults.featured = false;
+          defaults.isActive = true;
+          defaults.mediums = "Natural Stone Pigments on Wasli Paper, 24K Gold Leaf";
+          defaults.awards = "National Master Craftsman Award";
         }
         setFormData(defaults);
       }
@@ -76,6 +105,25 @@ export default function RecordModal({
     // Create local preview URLs
     const previews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews(previews);
+  };
+
+  const handleVideoFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+    handleInputChange("mediaType", "video");
+    if (!formData.badge || formData.badge === "PRESS & MEDIA" || formData.badge === "PRESS & DISPATCH") {
+      handleInputChange("badge", "VIDEO DISPATCH");
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview("");
+    handleInputChange("video", "");
+    handleInputChange("mediaType", "image");
   };
 
   const handleInputChange = (field, value) => {
@@ -97,6 +145,7 @@ export default function RecordModal({
           key !== "images" &&
           key !== "image" &&
           key !== "coverImage" &&
+          key !== "video" &&
           formData[key] !== undefined &&
           formData[key] !== null
         ) {
@@ -109,7 +158,18 @@ export default function RecordModal({
       });
 
       // Append file(s)
-      if (imageFiles.length > 0) {
+      if (section === "artists") {
+        if (imageFiles.length > 0) {
+          payload.append("avatar", imageFiles[0]);
+        } else if (formData.avatar) {
+          payload.append("avatar", formData.avatar);
+        }
+        if (coverImageFile) {
+          payload.append("coverImage", coverImageFile);
+        } else if (formData.coverImage) {
+          payload.append("coverImage", formData.coverImage);
+        }
+      } else if (imageFiles.length > 0) {
         if (section === "artworks" || section === "new-arrivals") {
           imageFiles.forEach((file) => {
             payload.append("images", file);
@@ -124,6 +184,15 @@ export default function RecordModal({
         if (formData.image) payload.append("image", formData.image);
         if (formData.coverImage) payload.append("coverImage", formData.coverImage);
         if (formData.images) payload.append("images", JSON.stringify(formData.images));
+      }
+
+      // Append video file or external video link (for news section)
+      if (section === "news") {
+        if (videoFile) {
+          payload.append("video", videoFile);
+        } else if (formData.video) {
+          payload.append("video", formData.video);
+        }
       }
 
       await onSave(payload, formData, initialData?._id || initialData?.id);
@@ -156,6 +225,8 @@ export default function RecordModal({
         return `${prefix} Curated Blog Essay`;
       case "reviews":
         return `${prefix} Patron Review`;
+      case "artists":
+        return `${prefix} Master Artist`;
       case "admins":
         return `${prefix} Admin Atelier Account`;
       default:
@@ -202,13 +273,15 @@ export default function RecordModal({
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#292522] font-sans">
                 {section === "artworks" || section === "new-arrivals"
                   ? "Artwork Images (Uploaded to Cloudinary via Multer)"
+                  : section === "artists"
+                  ? "Master Artist Portrait (Avatar) [Uploaded to Cloudinary]"
                   : "Cover / Display Image (Uploaded to Cloudinary)"}
               </label>
 
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <label className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#682C2C] hover:bg-[#522222] text-[#F8F4EA] text-xs font-sans uppercase font-semibold tracking-wider rounded-sm cursor-pointer shadow-xs transition-colors">
                   <Upload className="w-4 h-4 text-[#B89555]" />
-                  <span>Choose Image File(s)</span>
+                  <span>{section === "artists" ? "Choose Portrait Photo" : "Choose Image File(s)"}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -228,11 +301,12 @@ export default function RecordModal({
               {/* URL fallback input */}
               <input
                 type="text"
-                placeholder="Or paste external / hosted image URL"
-                value={formData.image || formData.coverImage || ""}
+                placeholder={section === "artists" ? "Or paste portrait image URL (Unsplash / Hosted)" : "Or paste external / hosted image URL"}
+                value={formData.avatar || formData.image || formData.coverImage || ""}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (section === "blogs") handleInputChange("coverImage", val);
+                  else if (section === "artists") handleInputChange("avatar", val);
                   else handleInputChange("image", val);
                   if (val) setImagePreviews([val]);
                 }}
@@ -688,6 +762,93 @@ export default function RecordModal({
                   className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
                 />
               </div>
+
+              {/* News Video Upload & Configuration */}
+              <div className="bg-[#FAF7F0] border border-[#B89555]/40 rounded-sm p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-[#682C2C] flex items-center gap-1.5 font-sans">
+                    <Video className="w-4 h-4 text-[#B89555]" />
+                    <span>News Video Dispatch (Upload MP4 / WebM / Link)</span>
+                  </label>
+                  {videoPreview && (
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#25D366]/20 text-[#0C381E] border border-[#25D366]/40 flex items-center gap-1 font-sans">
+                      <Film className="w-3 h-3" />
+                      Video Attached
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#682C2C] hover:bg-[#522222] text-[#F8F4EA] text-xs font-sans uppercase font-semibold tracking-wider rounded-sm cursor-pointer shadow-xs transition-colors shrink-0">
+                    <Upload className="w-3.5 h-3.5 text-[#B89555]" />
+                    <span>Upload Video File</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
+                      onChange={handleVideoFileChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <span className="text-xs text-[#72765A] font-sans">
+                    {videoFile ? `File: ${videoFile.name} (${Math.round(videoFile.size / 1024 / 1024 * 10) / 10} MB)` : "Supported: MP4, WebM, MOV (up to 100MB)"}
+                  </span>
+                </div>
+
+                {/* Direct Video URL input */}
+                <div>
+                  <label className="block text-[11px] font-medium text-[#72765A] mb-1 font-sans">
+                    Or paste Cloudinary / Direct Video URL / YouTube Link:
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.video || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleInputChange("video", val);
+                      if (val) {
+                        setVideoPreview(val);
+                        handleInputChange("mediaType", "video");
+                        if (!formData.badge || formData.badge === "PRESS & MEDIA" || formData.badge === "PRESS & DISPATCH") {
+                          handleInputChange("badge", "VIDEO DISPATCH");
+                        }
+                      }
+                    }}
+                    placeholder="https://res.cloudinary.com/... or https://youtube.com/watch?v=..."
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans placeholder:text-[#72765A]/50"
+                  />
+                </div>
+
+                {/* Live Video Preview in Modal */}
+                {videoPreview && (
+                  <div className="pt-2 border-t border-[#B89555]/20 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#292522] flex items-center gap-1 font-sans">
+                        <Play className="w-3.5 h-3.5 text-[#B89555]" />
+                        Video Preview
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        className="text-red-700 hover:text-red-900 text-[11px] flex items-center gap-1 cursor-pointer font-sans"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Remove Video</span>
+                      </button>
+                    </div>
+
+                    <div className="relative rounded overflow-hidden bg-black max-h-52 aspect-video flex items-center justify-center">
+                      <video
+                        src={videoPreview}
+                        controls
+                        className="w-full h-full object-contain"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -847,6 +1008,264 @@ export default function RecordModal({
                   placeholder="The mineral lapis lazuli and genuine gold leaf brings Bundelkhand alive..."
                   className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic Fields for Master Artists */}
+          {section === "artists" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Artist Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleInputChange("name", val);
+                      if (!isEdit && !formData.slug) {
+                        handleInputChange(
+                          "slug",
+                          val
+                            .toLowerCase()
+                            .trim()
+                            .replace(/[^\w\s-]/g, "")
+                            .replace(/[\s_-]+/g, "-")
+                        );
+                      }
+                    }}
+                    placeholder="e.g. Pt. Ramnarayan Sharma"
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Slug / URL Identifier
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.slug || ""}
+                    onChange={(e) => handleInputChange("slug", e.target.value)}
+                    placeholder="e.g. ramnarayan-sharma"
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Role / Atelier Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.role || ""}
+                    onChange={(e) => handleInputChange("role", e.target.value)}
+                    placeholder="e.g. Master Fresco & Miniature Painter"
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Location / Atelier Origin
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location || ""}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    placeholder="e.g. Tikamgarh, Bundelkhand"
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Cultural Region
+                  </label>
+                  <select
+                    value={formData.region || "Bundelkhand"}
+                    onChange={(e) => handleInputChange("region", e.target.value)}
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  >
+                    <option value="Bundelkhand">Bundelkhand</option>
+                    <option value="Central India">Central India</option>
+                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                    <option value="National Heritage">National Heritage</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Artistic Style / Lineage
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.style || ""}
+                    onChange={(e) => handleInputChange("style", e.target.value)}
+                    placeholder="e.g. Bundelkhand Royal Fresco & Miniature"
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Years of Master Experience
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.experienceYears ?? 15}
+                    onChange={(e) => handleInputChange("experienceYears", e.target.value)}
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                    Archived Artworks Count
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.artworkCount ?? 0}
+                    onChange={(e) => handleInputChange("artworkCount", e.target.value)}
+                    className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* Studio Cover Banner Upload */}
+              <div className="p-3.5 bg-[#F4EFE6] border border-[#B89555]/30 rounded-sm space-y-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#292522] font-sans">
+                  Studio Cover Banner / Atelier Backdrop (Cloudinary Upload)
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <label className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-[#682C2C] hover:bg-[#522222] text-[#F8F4EA] text-xs font-sans uppercase font-semibold tracking-wider rounded-sm cursor-pointer shadow-xs transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[#B89555]" />
+                    <span>Choose Cover Banner</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setCoverImageFile(file);
+                          setCoverImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Or paste studio cover banner image URL"
+                    value={formData.coverImage || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleInputChange("coverImage", val);
+                      if (val) setCoverImagePreview(val);
+                    }}
+                    className="flex-1 bg-[#FAF7F0] border border-[#B89555]/30 rounded-sm px-3 py-2 text-xs text-[#292522] font-sans"
+                  />
+                </div>
+                {coverImagePreview && (
+                  <div className="h-24 w-full rounded-sm overflow-hidden border border-[#B89555]/30 relative mt-2 bg-[#292522]">
+                    <img src={coverImagePreview} alt="Cover Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                  Signature Mediums & Pigments (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.mediums || ""}
+                  onChange={(e) => handleInputChange("mediums", e.target.value)}
+                  placeholder="e.g. Natural Stone Pigments on Wasli Paper, Tempera on Seasoned Wood, Gold Leaf Illumination"
+                  className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                  Awards & Puraskars (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.awards || ""}
+                  onChange={(e) => handleInputChange("awards", e.target.value)}
+                  placeholder="e.g. National Master Craftsman Award, Bundelkhand Ratna Puraskar"
+                  className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                  Short Bio (Catalog & Card Teaser)
+                </label>
+                <input
+                  type="text"
+                  value={formData.shortBio || ""}
+                  onChange={(e) => handleInputChange("shortBio", e.target.value)}
+                  placeholder="e.g. Guardian of the 400-year-old Orchha fresco tradition, grinding pure lapis, cinnabar, and gold dust by hand."
+                  className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                  Master Biography (Detailed Heritage Profile)
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.biography || ""}
+                  onChange={(e) => handleInputChange("biography", e.target.value)}
+                  placeholder="Detailed biography of the master artisan..."
+                  className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 font-sans">
+                  Artistic Journey & Lineage
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.journey || ""}
+                  onChange={(e) => handleInputChange("journey", e.target.value)}
+                  placeholder="Apprenticeship under hereditary masters, monumental fresco restorations..."
+                  className="w-full bg-[#F8F4EA] border border-[#B89555]/40 rounded-sm px-3 py-2 text-xs font-sans"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-sans text-[#292522]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.featured)}
+                    onChange={(e) => handleInputChange("featured", e.target.checked)}
+                    className="w-4 h-4 accent-[#682C2C] rounded-xs"
+                  />
+                  <span>Featured Master Artist (Showcase on Royal Highlights)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-sans text-[#292522]">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive !== false}
+                    onChange={(e) => handleInputChange("isActive", e.target.checked)}
+                    className="w-4 h-4 accent-[#682C2C] rounded-xs"
+                  />
+                  <span>Active Profile</span>
+                </label>
               </div>
             </div>
           )}

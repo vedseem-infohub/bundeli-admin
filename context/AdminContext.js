@@ -24,6 +24,7 @@ export function AdminProvider({ children }) {
   const [news, setNews] = useState([]);
   const [blogs, setBlogs] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [users, setUsers] = useState([]);
   const [selections, setSelections] = useState([]);
 
@@ -134,6 +135,7 @@ export function AdminProvider({ children }) {
         resNews,
         resBlogs,
         resRev,
+        resArtists,
         resUsers,
         resSel,
       ] = await Promise.allSettled([
@@ -145,6 +147,7 @@ export function AdminProvider({ children }) {
         api.getNews(),
         api.getBlogs(),
         api.getReviews(),
+        api.getArtists(),
         api.getAllUsers(),
         api.getSelections(),
       ]);
@@ -172,6 +175,9 @@ export function AdminProvider({ children }) {
       }
       if (resRev.status === "fulfilled" && resRev.value.data) {
         setReviews(resRev.value.data);
+      }
+      if (resArtists.status === "fulfilled" && resArtists.value.data) {
+        setArtists(resArtists.value.data);
       }
       if (resUsers.status === "fulfilled" && resUsers.value.users) {
         setUsers(resUsers.value.users);
@@ -226,6 +232,8 @@ export function AdminProvider({ children }) {
         setBlogs,
         reviews,
         setReviews,
+        artists,
+        setArtists,
         users,
         setUsers,
         selections,

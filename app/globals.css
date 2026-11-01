@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Roboto", sans-serif;
+  --font-serif: "Roboto", sans-serif;
+  --font-mono: "Roboto", monospace;
+}
+
 @layer base {
   :root {
     --maroon: #682C2C;
@@ -16,21 +22,26 @@
     --charcoal-light: #4A443E;
     --olive: #72765A;
 
-    --font-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-    --font-sans: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-serif: "Roboto", sans-serif;
+    --font-sans: "Roboto", sans-serif;
+    --font-mono: "Roboto", monospace;
+  }
+
+  *, ::before, ::after {
+    font-family: "Roboto", sans-serif;
   }
 
   body {
     background-color: #F8F4EA;
     color: #292522;
-    font-family: var(--font-sans);
+    font-family: "Roboto", sans-serif;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-serif {
-    font-family: var(--font-serif);
+  h1, h2, h3, h4, h5, h6, .font-serif, .font-sans, p, span, a, button, input, textarea, select {
+    font-family: "Roboto", sans-serif !important;
   }
 }
 
