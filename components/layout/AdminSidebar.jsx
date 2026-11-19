@@ -124,7 +124,7 @@ export default function AdminSidebar() {
     },
     {
       id: "profile",
-      label: "Admin Profile & Atelier",
+      label: "Profile, Contact & Socials",
       icon: UserCheck,
       badge: null,
     },

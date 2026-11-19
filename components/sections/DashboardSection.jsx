@@ -213,10 +213,12 @@ export default function DashboardSection() {
                       {sel.status || "Selected"}
                     </span>
                     <span className="text-[10px] text-[#72765A] font-sans block mt-1">
-                      {new Date(sel.createdAt || Date.now()).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {sel.createdAt
+                        ? new Date(sel.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
                     </span>
                   </div>
                 </div>

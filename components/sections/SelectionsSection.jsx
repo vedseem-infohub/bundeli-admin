@@ -207,11 +207,13 @@ export default function SelectionsSection() {
 
                     {/* Date */}
                     <td className="py-3.5 px-4 text-[#72765A] text-[11px]">
-                      {new Date(sel.createdAt || Date.now()).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {sel.createdAt
+                        ? new Date(sel.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "—"}
                     </td>
 
                     {/* Actions */}

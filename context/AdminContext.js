@@ -78,6 +78,9 @@ export function AdminProvider({ children }) {
       if (res && res.success && res.admin) {
         setAdminUser(res.admin);
         localStorage.setItem("bk_admin_user", JSON.stringify(res.admin));
+        if (res.token) {
+          localStorage.setItem("bk_admin_token", res.token);
+        }
         addToast(`Authenticated as ${res.admin.name} (${res.admin.role.toUpperCase()}).`);
         await refreshAllData();
         return res;
@@ -98,6 +101,7 @@ export function AdminProvider({ children }) {
     } finally {
       setAdminUser(null);
       localStorage.removeItem("bk_admin_user");
+      localStorage.removeItem("bk_admin_token");
       addToast("Signed out from Atelier Admin Console.", "info");
     }
   };
